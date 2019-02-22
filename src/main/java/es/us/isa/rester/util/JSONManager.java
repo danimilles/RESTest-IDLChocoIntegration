@@ -29,4 +29,10 @@ public class JSONManager {
 
         return values;
     }
+
+    public static Object readJson (String jsonPath) {
+        List<String> listOfOne = new ArrayList<>();
+        listOfOne.add(jsonPath);
+        return readValues(listOfOne).get(0);
+    }
 }
