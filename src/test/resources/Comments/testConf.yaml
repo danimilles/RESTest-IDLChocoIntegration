@@ -86,10 +86,10 @@ testConfiguration:
         generator:
           type: ObjectPerturbator
           genParameters:
-          - name: stringObject
+          - name: stringObjects
             values:
             - '{"id":"c1","userName":"josedelpino","text":"I love Spotify","date":"2013-04-16T20:44:53.950+0000","type":"Review"}'
-#              - '{"id":"c12","userName":"jose22","text":"Please update Twitter","date":"2017-08-14T15:44:53.950+0000","type":"Request"}'
+            - '{"id":"c12","userName":"jose22","text":"Please update Twitter","date":"2017-08-14T15:44:53.950+0000","type":"Request"}'
             objectValues: null
       paramDependencies: null
       expectedResponse: 200
@@ -101,10 +101,10 @@ testConfiguration:
         generator:
           type: ObjectPerturbator
           genParameters:
-          - name: stringObject
+          - name: stringObjects
             values:
             - '{"id":"c1","userName":"josedelpino","text":"I love Spotify","date":"2013-04-16T20:44:53.950+0000","type":"Review"}'
-#            - '{"id":"c12","userName":"jose22","text":"Please update Twitter","date":"2017-08-14T15:44:53.950+0000","type":"Request"}'
+            - '{"id":"c12","userName":"jose22","text":"Please update Twitter","date":"2017-08-14T15:44:53.950+0000","type":"Request"}'
             objectValues: null
       paramDependencies: null
       expectedResponse: 200

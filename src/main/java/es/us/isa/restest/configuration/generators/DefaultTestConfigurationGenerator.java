@@ -254,7 +254,7 @@ public class DefaultTestConfigurationGenerator {
 
 					// Replaced RandomInputValue with ObjectPerturbator:
 					gen.setType("ObjectPerturbator");
-					genParam1.setName("stringObject");
+					genParam1.setName("stringObjects");
 					genParam1Values.add(bodyParam);
 					genParam1.setValues(genParam1Values);
 					genParams.add(genParam1);

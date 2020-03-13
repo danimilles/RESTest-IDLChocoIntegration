@@ -7,6 +7,9 @@ import es.us.isa.jsonmutator.JsonMutator;
 import es.us.isa.restest.inputs.ITestDataGenerator;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 /**
  * This class leverages the {@link es.us.isa.jsonmutator.JsonMutator} to perturb
@@ -19,7 +22,7 @@ import java.io.IOException;
  */
 public class ObjectPerturbator implements ITestDataGenerator {
 
-    private JsonNode originalObject;
+    private List<JsonNode> originalObjects;
     private JsonMutator jsonMutator;
     private ObjectMapper objectMapper;
     private Boolean singleOrder = true; // True if single order mutation, false otherwise
@@ -31,18 +34,26 @@ public class ObjectPerturbator implements ITestDataGenerator {
 
     public ObjectPerturbator(JsonNode originalObject) {
         this();
-        this.originalObject = originalObject;
+        List<JsonNode> originalObjects = new ArrayList<>();
+        originalObjects.add(originalObject);
+        this.originalObjects = originalObjects;
     }
 
     public ObjectPerturbator(Object originalObject) {
         this();
-        this.originalObject = objectMapper.valueToTree(originalObject);
+        JsonNode jsonObject = objectMapper.valueToTree(originalObject);
+        List<JsonNode> originalObjects = new ArrayList<>();
+        originalObjects.add(jsonObject);
+        this.originalObjects = originalObjects;
     }
 
     public ObjectPerturbator(String originalObject) {
         this();
         try {
-            this.originalObject = objectMapper.readTree(originalObject);
+            JsonNode jsonObject = objectMapper.readTree(originalObject);
+            List<JsonNode> originalObjects = new ArrayList<>();
+            originalObjects.add(jsonObject);
+            this.originalObjects = originalObjects;
         } catch (IOException e) {
             System.err.println("An error occurred when deserializing JSON:");
             e.printStackTrace();
@@ -50,11 +61,29 @@ public class ObjectPerturbator implements ITestDataGenerator {
         }
     }
 
+    public ObjectPerturbator(List<String> stringObjects) {
+        this();
+        List<JsonNode> originalObjects = new ArrayList<>();
+        try {
+            for(String stringObject : stringObjects) {
+                JsonNode jsonObject = objectMapper.readTree(stringObject);
+                originalObjects.add(jsonObject);
+            }
+        } catch (IOException e) {
+            System.err.println("An error occurred when deserializing JSON:");
+            e.printStackTrace();
+            System.exit(1);
+        }
+        this.originalObjects = originalObjects;
+    }
+
     @Override
     public JsonNode nextValue() {
-        JsonNode beforeMutating = originalObject.deepCopy();
-        JsonNode afterMutating = jsonMutator.mutateJson(originalObject, singleOrder);
-        originalObject = beforeMutating;
+        Random random = new Random();
+        int index = random.nextInt(originalObjects.size());
+        JsonNode beforeMutating = originalObjects.get(index).deepCopy();
+        JsonNode afterMutating = jsonMutator.mutateJson(originalObjects.get(index), singleOrder);
+        originalObjects.set(index, beforeMutating);
         return afterMutating;
     }
 
@@ -68,30 +97,34 @@ public class ObjectPerturbator implements ITestDataGenerator {
         return null;
     }
 
-    public JsonNode getOriginalObject() {
-        return originalObject;
+    public List<JsonNode> getOriginalObjects() {
+        return originalObjects;
     }
 
-    public String getOriginalStringObject() {
+    public List<String> getOriginalStringObjects() {
+        List<String> stringObjects = new ArrayList<>();
         try {
-            return objectMapper.writeValueAsString(originalObject);
+            for(JsonNode originalObject : originalObjects) {
+                stringObjects.add(objectMapper.writeValueAsString(originalObject));
+            }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
+            return null;
         }
-        return null;
+        return stringObjects;
     }
 
-    public void setOriginalObject(JsonNode originalObject) {
-        this.originalObject = originalObject;
+    public void addOriginalObject(JsonNode originalObject) {
+        this.originalObjects.add(originalObject);
     }
 
-    public void setOriginalObject(Object originalObject) {
-        this.originalObject = objectMapper.valueToTree(originalObject);
+    public void addOriginalObject(Object originalObject) {
+        this.originalObjects.add(objectMapper.valueToTree(originalObject));
     }
 
-    public void setOriginalObject(String originalObject) {
+    public void addOriginalObject(String originalObject) {
         try {
-            this.originalObject = objectMapper.readTree(originalObject);
+            this.originalObjects.add(objectMapper.readTree(originalObject));
         } catch (IOException e) {
             System.err.println("An error occurred when deserializing JSON:");
             e.printStackTrace();
@@ -105,5 +138,20 @@ public class ObjectPerturbator implements ITestDataGenerator {
 
     public void setSingleOrder(Boolean singleOrder) {
         this.singleOrder = singleOrder;
+    }
+
+    public void setOriginalObjects(List<String> stringObjects) {
+        List<JsonNode> originalObjects = new ArrayList<>();
+        try {
+            for(String stringObject : stringObjects) {
+                JsonNode jsonObject = objectMapper.readTree(stringObject);
+                originalObjects.add(jsonObject);
+            }
+        } catch (IOException e) {
+            System.err.println("An error occurred when deserializing JSON:");
+            e.printStackTrace();
+            System.exit(1);
+        }
+        this.originalObjects = originalObjects;
     }
 }
