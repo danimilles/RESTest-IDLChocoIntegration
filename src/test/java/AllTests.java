@@ -49,6 +49,7 @@ import es.us.isa.restest.testcases.writters.RESTAssuredWritterTest;
 	CommentsObjectPerturbationTestCaseGeneratorTest.class,
 	CommentsRandomTestCaseGeneratorTest.class,
 	TravelRandomTestCaseGenerator.class,
+	TumblrFullTestCaseGenerator.class,
 	AllureReportManagerTest.class,
 	CSVManagerTest.class,
 	FileManagerTest.class,

@@ -30,5 +30,16 @@ testConfiguration:
             values:
             - Parameter value
             objectValues: null
+        - type: Faulty generator type
+          valid: false
+          genParameters:
+          - name: Parameter name
+            values:
+            - Parameter value
+            objectValues: null
+          - name: Parameter name 2
+            values:
+            - Parameter value
+            objectValues: null
       paramDependencies: null
       expectedResponse: Expected HTTP code

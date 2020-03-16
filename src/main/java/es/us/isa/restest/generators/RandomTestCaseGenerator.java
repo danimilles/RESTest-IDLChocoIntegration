@@ -74,7 +74,8 @@ public class RandomTestCaseGenerator extends AbstractTestCaseGenerator {
 				Parameter specParameter = findParameter(specOperation, confParam.getName());
 
 				if (specParameter.getRequired() || rand.nextFloat() <= confParam.getWeight()) {
-					ITestDataGenerator generator = generators.get(confParam.getName());
+
+					ITestDataGenerator generator = ITestDataGenerator.nextGenerator(nominalGenerators.get(confParam.getName()), faultyGenerators.get(confParam.getName()), faulty);
 					switch (specParameter.getIn()) {
 						case "header":
 							test.addHeaderParameter(confParam.getName(), generator.nextValueAsString());

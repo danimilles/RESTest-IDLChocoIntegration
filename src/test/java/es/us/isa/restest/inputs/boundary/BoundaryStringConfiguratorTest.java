@@ -6,7 +6,6 @@ import es.us.isa.restest.configuration.pojos.GenParameter;
 import es.us.isa.restest.configuration.pojos.Generator;
 import es.us.isa.restest.inputs.ITestDataGenerator;
 import es.us.isa.restest.inputs.TestDataGeneratorFactory;
-import es.us.isa.restest.inputs.boundary.BoundaryStringConfigurator;
 
 import org.junit.Test;
 

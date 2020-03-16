@@ -18,6 +18,16 @@ testConfiguration:
               weight: 0.5
               generators:
               - type: Generator type
+                valid: true
+                genParameters:
+                  - name: Parameter name
+                    values:
+                      - Parameter value
+                  - name: Parameter name 2
+                    values:
+                      - Parameter value
+              - type: Faulty generator type
+                valid: false
                 genParameters:
                   - name: Parameter name
                     values:

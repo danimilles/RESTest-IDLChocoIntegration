@@ -6,6 +6,7 @@ import java.util.List;
 public class Generator {
 
     private String type;
+    private Boolean valid = true; // Whether or not the generator generates valid data.
     private List<GenParameter> genParameters = null;
 
     public String getType() {
@@ -24,4 +25,11 @@ public class Generator {
         this.genParameters = genParameters;
     }
 
+    public Boolean isValid() {
+        return this.valid;
+    }
+
+    public void setValid(Boolean valid) {
+        this.valid = valid;
+    }
 }

@@ -24,20 +24,21 @@ public abstract class AbstractTestCaseGenerator {
 
 	protected OpenAPISpecification spec;
 	protected TestConfigurationObject conf;
-	protected Map<String,ITestDataGenerator> generators;	// Test data generators (random, boundaryValue, fixedlist...)
-	protected AuthManager authManager;						// For if multiple API keys are used for the API
-	protected Boolean enableFaulty = true;					// True if faulty test cases want to be generated. Defaults to true
-	protected Boolean ignoreDependencies = false;			// If true, the algorithm won't manage the API's dependencies
-	protected Float faultyRatio = 0.1f;						// Ratio (0-1) of faulty test cases to be generated. Defaults to 0.1
-	protected Boolean violateDependency;					// Whether to violate an inter-parameter dependency to create a faulty test case
-	protected Analyzer idlReasoner;							// IDLReasoner to check if requests are valid or not
-	protected SwaggerRequestResponseValidator validator;	// Validator used to know if a test case is valid or not
-	protected int numberOfTest;								// Number of test cases to be generated for each operation
-	protected int index;									// Number of test cases generated so far
-	protected int nCurrentFaulty;							//Number of faulty test cases generated in the current iteration
-	protected int nCurrentNominal;							//Number of nominal test cases generated in the current iteration
-	protected int nFaulty;									// Number of faulty test cases generated so far
-	protected int nNominal;									// Number of nominal test cases generated so far
+	protected Map<String,List<ITestDataGenerator>> nominalGenerators;	// Nominal test data generators (random, boundaryValue, fixedlist...)
+	protected Map<String,List<ITestDataGenerator>> faultyGenerators;	// Faulty test data generators (random, boundaryValue, fixedlist...)
+	protected AuthManager authManager;									// For if multiple API keys are used for the API
+	protected Boolean enableFaulty = true;								// True if faulty test cases want to be generated. Defaults to true
+	protected Boolean ignoreDependencies = false;						// If true, the algorithm won't manage the API's dependencies
+	protected Float faultyRatio = 0.1f;									// Ratio (0-1) of faulty test cases to be generated. Defaults to 0.1
+	protected Boolean violateDependency;								// Whether to violate an inter-parameter dependency to create a faulty test case
+	protected Analyzer idlReasoner;										// IDLReasoner to check if requests are valid or not
+	protected SwaggerRequestResponseValidator validator;				// Validator used to know if a test case is valid or not
+	protected int numberOfTest;											// Number of test cases to be generated for each operation
+	protected int index;												// Number of test cases generated so far
+	protected int nCurrentFaulty;										//Number of faulty test cases generated in the current iteration
+	protected int nCurrentNominal;										//Number of nominal test cases generated in the current iteration
+	protected int nFaulty;												// Number of faulty test cases generated so far
+	protected int nNominal;												// Number of nominal test cases generated so far
 
 	/**
 	 * Generate a set of test cases
@@ -178,10 +179,20 @@ public abstract class AbstractTestCaseGenerator {
 	// Create all generators needed for the parameters of an operation
 	private void createGenerators(List<TestParameter> testParameters) {
 		
-		this.generators = new HashMap<String,ITestDataGenerator>();
+		this.nominalGenerators = new HashMap<String,List<ITestDataGenerator>>();
+		this.faultyGenerators = new HashMap<String,List<ITestDataGenerator>>();
 		
-		for(TestParameter param: testParameters)
-			generators.put(param.getName(), TestDataGeneratorFactory.createTestDataGenerator(param.getGenerator()));
+		for(TestParameter param: testParameters) {
+			List<ITestDataGenerator> nomGens = new ArrayList<>();
+			List<ITestDataGenerator> faultyGens = new ArrayList<>();
+			for(Generator g : param.getGenerators()) {
+				if(g.isValid()) nomGens.add(TestDataGeneratorFactory.createTestDataGenerator(g));
+				else faultyGens.add(TestDataGeneratorFactory.createTestDataGenerator(g));
+			}
+			nominalGenerators.put(param.getName(), nomGens);
+			faultyGenerators.put(param.getName(), faultyGens);
+		}
+
 
 	}
 

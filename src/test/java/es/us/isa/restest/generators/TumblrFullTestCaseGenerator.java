@@ -14,7 +14,7 @@ import static org.junit.Assert.assertEquals;
 public class TumblrFullTestCaseGenerator {
 
     @Test
-    public void amadeusHotelFullTestCaseGenerator() {
+    public void tumblrFullTestCaseGenerator() {
         // Load specification
         String OAISpecPath = "src/test/resources/Tumblr/swagger.yaml";
         OpenAPISpecification spec = new OpenAPISpecification(OAISpecPath);

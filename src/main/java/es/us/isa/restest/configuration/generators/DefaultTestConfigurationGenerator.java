@@ -266,8 +266,9 @@ public class DefaultTestConfigurationGenerator {
 			else {
 				setDefaultGenerator(gen);
 			}
-
-			testParam.setGenerator(gen);
+			List<Generator> gens = new ArrayList<>();
+			gens.add(gen);
+			testParam.setGenerators(gens);
 			testParameters.add(testParam);
 		}
 		
