@@ -30,6 +30,7 @@ public class ObjectPerturbator implements ITestDataGenerator {
     public ObjectPerturbator() {
         this.objectMapper = new ObjectMapper();
         this.jsonMutator = new JsonMutator();
+        this.originalObjects = new ArrayList<>();
     }
 
     public ObjectPerturbator(JsonNode originalObject) {
