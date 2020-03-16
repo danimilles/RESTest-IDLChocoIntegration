@@ -30,7 +30,6 @@ public class ObjectPerturbator implements ITestDataGenerator {
     public ObjectPerturbator() {
         this.objectMapper = new ObjectMapper();
         this.jsonMutator = new JsonMutator();
-        this.originalObjects = new ArrayList<>();
     }
 
     public ObjectPerturbator(JsonNode originalObject) {
@@ -120,10 +119,12 @@ public class ObjectPerturbator implements ITestDataGenerator {
     }
 
     public void addOriginalObject(Object originalObject) {
+        if(originalObjects == null) this.originalObjects = new ArrayList<>();
         this.originalObjects.add(objectMapper.valueToTree(originalObject));
     }
 
     public void addOriginalObject(String originalObject) {
+        if(originalObjects == null) this.originalObjects = new ArrayList<>();
         try {
             this.originalObjects.add(objectMapper.readTree(originalObject));
         } catch (IOException e) {
