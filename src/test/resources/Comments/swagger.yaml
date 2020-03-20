@@ -14,7 +14,7 @@ schemes:
 paths:
   /comments:
     get:
-      operationId: getComments
+      operationId: getAll
       tags:
         - Comments
       summary: searches comments
@@ -68,7 +68,7 @@ paths:
         "400":
           description: bad input parameter
     post:
-      operationId: postComment
+      operationId: addComment
       tags:
         - Comments
       summary: adds a comment
@@ -93,7 +93,7 @@ paths:
         "400":
           description: invalid input, object invalid
     put:
-      operationId: putComment
+      operationId: updateComment
       tags:
         - Comments
       summary: adds a comment

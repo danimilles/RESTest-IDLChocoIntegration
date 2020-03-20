@@ -7,7 +7,7 @@ testConfiguration:
   testPaths:
   - testPath: /comments
     operations:
-    - operationId: getComments
+    - operationId: getAll
       method: get
       testParameters:
       - name: contains
@@ -78,7 +78,7 @@ testConfiguration:
             objectValues: null
       paramDependencies: null
       expectedResponse: 200
-    - operationId: putComment
+    - operationId: updateComment
       method: put
       testParameters:
       - name: comment
@@ -93,7 +93,7 @@ testConfiguration:
             objectValues: null
       paramDependencies: null
       expectedResponse: 200
-    - operationId: postComment
+    - operationId: addComment
       method: post
       testParameters:
       - name: comment

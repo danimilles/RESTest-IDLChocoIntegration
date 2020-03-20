@@ -8,6 +8,7 @@ import es.us.isa.restest.generators.AbstractTestCaseGenerator;
 import es.us.isa.restest.generators.RandomTestCaseGenerator;
 import es.us.isa.restest.specification.OpenAPISpecification;
 import es.us.isa.restest.testcases.writers.IWriter;
+import es.us.isa.restest.testcases.writers.PITestWriter;
 import es.us.isa.restest.testcases.writers.RESTAssuredWriter;
 
 import java.util.concurrent.TimeUnit;
@@ -42,6 +43,16 @@ public class MainUtils {
         writer.setEnableStats(enableOutputStats);
         writer.setAPIName(APIName);
         return writer;
+    }
+
+    public static PITestWriter createPITestWriter(String OAISpecPath, String confPath, String targetDirJava, String testClassName, String packageName, String bodyEntityName, String bodyEntityPackage, String resourceClassName, String resourceClassPackage, Boolean bodiesAsString) {
+        PITestWriter pitestWriter = new PITestWriter(OAISpecPath, confPath, targetDirJava + "/pitest", testClassName, packageName + ".pitest");
+        pitestWriter.setBodyEntityName(bodyEntityName);
+        pitestWriter.setBodyEntityPackage(bodyEntityPackage);
+        pitestWriter.setResourceClassName(resourceClassName);
+        pitestWriter.setResourceClassPackage(resourceClassPackage);
+        pitestWriter.setBodiesAsString(bodiesAsString);
+        return pitestWriter;
     }
 
     // Create an Allure report manager

@@ -5,6 +5,7 @@ import es.us.isa.restest.generators.AbstractTestCaseGenerator;
 import es.us.isa.restest.runners.RESTestRunner;
 import es.us.isa.restest.specification.OpenAPISpecification;
 import es.us.isa.restest.testcases.writers.IWriter;
+import es.us.isa.restest.testcases.writers.PITestWriter;
 import es.us.isa.restest.testcases.writers.RESTAssuredWriter;
 import es.us.isa.restest.util.*;
 
@@ -30,30 +31,50 @@ public class IterativeExample {
     private static int totalNumTestCases = 50;				// Total number of test cases to be generated
     private static int timeDelay = -1;
 
+    private static Boolean enablePitestWriter = false;
+    private static String pitestBodyEntityName;
+    private static String pitestBodyEntityPackage;
+    private static String pitestResourceClassName;
+    private static String pitestResourceClassPackage;
+    private static Boolean pitestBodiesAsString;
+
     public static void main(String[] args) {
 
         if(args.length > 0)
             setParameters(args[0]);
         else
-            setParameters("src/main/resources/APIProperties/youtube_getVideos.properties");
+            setParameters("src/main/resources/APIProperties/events.properties");
 
         // Create target directory if it does not exists
         createDir(targetDirJava);
+        if(enablePitestWriter)
+            createDir(targetDirJava + "/pitest");
 
         OpenAPISpecification spec = new OpenAPISpecification(OAISpecPath);
 
-        AbstractTestCaseGenerator generator = MainUtils.createGenerator(spec, confPath, numTestCases, ignoreDependencies);	                                        // Test case generator
+        AbstractTestCaseGenerator generator = MainUtils.createGenerator(spec, confPath, numTestCases, ignoreDependencies);  // Test case generator
         generator.setFaultyRatio(faultyRatio);
         generator.setFaultyDependencyRatio(faultyDependencyRatio);
         IWriter writer = MainUtils.createWriter(spec, OAISpecPath, targetDirJava, testClassName, packageName, enableOutputCoverage, APIName);   // Test case writer
-        AllureReportManager reportManager = MainUtils.createAllureReportManager(APIName);		                                                // Allure test case reporter
-        CSVReportManager csvReportManager = MainUtils.createCSVReportManager(APIName, enableCSVStats, enableInputCoverage);			                                // CSV test case reporter
+
+        AllureReportManager reportManager = MainUtils.createAllureReportManager(APIName);   // Allure test case reporter
+        CSVReportManager csvReportManager = MainUtils.createCSVReportManager(APIName, enableCSVStats, enableInputCoverage);    // CSV test case reporter
+
         RESTestRunner runner;
         if(enableInputCoverage && enableOutputCoverage) {
-            CoverageMeter covMeter = MainUtils.createCoverageMeter(spec);							                                            //Coverage meter
-            runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, reportManager, csvReportManager, covMeter);
-        } else
-            runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, reportManager, csvReportManager);
+            CoverageMeter covMeter = MainUtils.createCoverageMeter(spec);   //Coverage meter
+            if(enablePitestWriter) {
+                PITestWriter pitestWriter = MainUtils.createPITestWriter(OAISpecPath, confPath, targetDirJava, testClassName, packageName, pitestBodyEntityName, pitestBodyEntityPackage, pitestResourceClassName, pitestResourceClassPackage, pitestBodiesAsString);
+                runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, pitestWriter, reportManager, csvReportManager, covMeter);
+            } else
+                runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, reportManager, csvReportManager, covMeter);
+        } else {
+            if(enablePitestWriter) {
+                PITestWriter pitestWriter = MainUtils.createPITestWriter(OAISpecPath, confPath, targetDirJava, testClassName, packageName, pitestBodyEntityName, pitestBodyEntityPackage, pitestResourceClassName, pitestResourceClassPackage, pitestBodiesAsString);
+                runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, pitestWriter, reportManager, csvReportManager);
+            } else
+                runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, reportManager, csvReportManager);
+        }
         int iteration = 1;
         while (totalNumTestCases == -1 || runner.getNumTestCases() < totalNumTestCases) {
 
@@ -64,6 +85,7 @@ public class IterativeExample {
             // Generate unique test class name to avoid the same class being loaded everytime
             String className = testClassName + "_" + IDGenerator.generateId();
             ((RESTAssuredWriter) writer).setClassName(className);
+            //If pitestWriter exists, its classname will be changed in setTestClassName method of RESTestRunner
             runner.setTestClassName(className);
 
             // Test case generation + execution + test report generation
@@ -101,5 +123,15 @@ public class IterativeExample {
         String faultyDependencyRatioString = PropertyManager.readProperty(APIPropertyFilePath, "api.faultydependencyratio");
         if (faultyDependencyRatioString != null)
             faultyDependencyRatio = Float.parseFloat(faultyDependencyRatioString);
+
+        Boolean pitest = Boolean.parseBoolean(PropertyManager.readProperty(APIPropertyFilePath, "api.pitest"));
+        if(pitest) {
+            enablePitestWriter = true;
+            pitestBodyEntityName =  PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.bodyentityname");
+            pitestBodyEntityPackage = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.bodyentitypackage");
+            pitestResourceClassName = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.resourceclassname");
+            pitestResourceClassPackage = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.resourcepackage");
+            pitestBodiesAsString = Boolean.parseBoolean(PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.bodiesasstring"));
+        }
     }
 }

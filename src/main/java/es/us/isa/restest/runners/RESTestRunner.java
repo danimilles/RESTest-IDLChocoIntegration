@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import es.us.isa.restest.coverage.CoverageMeter;
 import es.us.isa.restest.coverage.CoverageResults;
 import es.us.isa.restest.testcases.TestResult;
+import es.us.isa.restest.testcases.writers.PITestWriter;
 import es.us.isa.restest.util.*;
 import es.us.isa.restest.util.ClassLoader;
 import org.apache.logging.log4j.LogManager;
@@ -37,9 +38,10 @@ public class RESTestRunner {
 	String packageName;							// Package name
 	AbstractTestCaseGenerator generator;   		// Test case generator
 	IWriter writer;								// RESTAssured writer
+	IWriter pitestWriter;
 	AllureReportManager allureReportManager;	// Allure report manager
 	CSVReportManager csvReportManager;			// CSV report manager
-	static CoverageMeter covMeter;				//Coverage meter
+	CoverageMeter covMeter;				//Coverage meter
 	int numTestCases = 0;						// Number of test cases generated so far
 	private static final Logger logger = LogManager.getLogger(RESTestRunner.class.getName());
 	
@@ -57,6 +59,17 @@ public class RESTestRunner {
 		this(testClassName, targetDir, packageName, generator, writer, reportManager, csvReportManager);
 		this.covMeter = covMeter;
 	}
+
+	public RESTestRunner(String testClassName, String targetDir, String packageName, AbstractTestCaseGenerator generator, IWriter writer, IWriter pitestWriter, AllureReportManager reportManager, CSVReportManager csvReportManager) {
+		this(testClassName, targetDir, packageName, generator, writer, reportManager, csvReportManager);
+		this.pitestWriter = pitestWriter;
+	}
+	public RESTestRunner(String testClassName, String targetDir, String packageName, AbstractTestCaseGenerator generator, IWriter writer, IWriter pitestWriter, AllureReportManager reportManager, CSVReportManager csvReportManager, CoverageMeter covMeter) {
+		this(testClassName, targetDir, packageName, generator, writer, reportManager, csvReportManager, covMeter);
+		this.pitestWriter = pitestWriter;
+	}
+
+
 	
 	public void run() {
 
@@ -129,6 +142,10 @@ public class RESTestRunner {
         logger.info("Writing " + testCases.size() + " test cases to test class " + filePath);
         writer.write(testCases);
 
+        //Write test cases for mutation coverage (if pitestWriter exists).
+        if(pitestWriter != null)
+        	pitestWriter.write(testCases);
+
 	}
 
 	private static void testExecution(Class<?> testClass)  {
@@ -182,6 +199,8 @@ public class RESTestRunner {
 	
 	public void setTestClassName(String testClassName) {
 		this.testClassName = testClassName;
+		if(pitestWriter != null)
+			((PITestWriter) pitestWriter).setClassName(testClassName);
 	}
 
 	public int getNumTestCases() {

@@ -7,7 +7,7 @@ testConfiguration:
   testPaths:
   - testPath: /events
     operations:
-    - operationId: getAllEvents
+    - operationId: getEvents
       method: get
       testParameters:
       - name: name
@@ -118,7 +118,7 @@ testConfiguration:
             objectValues: null
       paramDependencies: null
       expectedResponse: 200
-    - operationId: updateEvent
+    - operationId: editEvent
       method: put
       testParameters:
       - name: id
