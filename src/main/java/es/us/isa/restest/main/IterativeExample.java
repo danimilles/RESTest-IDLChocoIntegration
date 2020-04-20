@@ -1,5 +1,7 @@
 package es.us.isa.restest.main;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import es.us.isa.restest.coverage.CoverageMeter;
 import es.us.isa.restest.generators.AbstractTestCaseGenerator;
 import es.us.isa.restest.runners.RESTestRunner;
@@ -8,6 +10,10 @@ import es.us.isa.restest.testcases.writers.IWriter;
 import es.us.isa.restest.testcases.writers.PITestWriter;
 import es.us.isa.restest.testcases.writers.RESTAssuredWriter;
 import es.us.isa.restest.util.*;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import static es.us.isa.restest.util.FileManager.createDir;
 
@@ -32,9 +38,9 @@ public class IterativeExample {
     private static int timeDelay = -1;
 
     private static Boolean enablePitestWriter = false;
-    private static String pitestBodyEntityName;
+    private static Map<String, String> pitestBodyEntityName;
     private static String pitestBodyEntityPackage;
-    private static String pitestResourceClassName;
+    private static Map<String, String> pitestResourceClassName;
     private static String pitestResourceClassPackage;
     private static Boolean pitestBodiesAsString;
 
@@ -43,7 +49,7 @@ public class IterativeExample {
         if(args.length > 0)
             setParameters(args[0]);
         else
-            setParameters("src/main/resources/APIProperties/events.properties");
+            setParameters("src/main/resources/APIProperties/youtube_search.properties");
 
         // Create target directory if it does not exists
         createDir(targetDirJava);
@@ -127,9 +133,32 @@ public class IterativeExample {
         Boolean pitest = Boolean.parseBoolean(PropertyManager.readProperty(APIPropertyFilePath, "api.pitest"));
         if(pitest) {
             enablePitestWriter = true;
-            pitestBodyEntityName =  PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.bodyentityname");
+
+            try {
+                String bodyEntityName = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.bodyentityname");
+                if(bodyEntityName.charAt(0) == '{') {
+                    ObjectMapper mapper = new ObjectMapper();
+
+                    pitestBodyEntityName = mapper.readValue(bodyEntityName, new TypeReference<Map<String, String>>(){});
+                } else {
+                    pitestBodyEntityName = new HashMap<>();
+                    pitestBodyEntityName.put("ALL", bodyEntityName);
+                }
+
+                String resourceClassName = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.resourceclassname");
+                if(resourceClassName.charAt(0) == '{') {
+                    ObjectMapper mapper = new ObjectMapper();
+                    pitestResourceClassName = mapper.readValue(resourceClassName, new TypeReference<Map<String, String>>(){});
+                } else {
+                    pitestResourceClassName = new HashMap<>();
+                    pitestResourceClassName.put("ALL", resourceClassName);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+
             pitestBodyEntityPackage = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.bodyentitypackage");
-            pitestResourceClassName = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.resourceclassname");
             pitestResourceClassPackage = PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.resourcepackage");
             pitestBodiesAsString = Boolean.parseBoolean(PropertyManager.readProperty(APIPropertyFilePath, "api.pitest.bodiesasstring"));
         }

@@ -11,6 +11,7 @@ import es.us.isa.restest.testcases.writers.IWriter;
 import es.us.isa.restest.testcases.writers.PITestWriter;
 import es.us.isa.restest.testcases.writers.RESTAssuredWriter;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static es.us.isa.restest.util.FileManager.createDir;
@@ -45,7 +46,7 @@ public class MainUtils {
         return writer;
     }
 
-    public static PITestWriter createPITestWriter(String OAISpecPath, String confPath, String targetDirJava, String testClassName, String packageName, String bodyEntityName, String bodyEntityPackage, String resourceClassName, String resourceClassPackage, Boolean bodiesAsString) {
+    public static PITestWriter createPITestWriter(String OAISpecPath, String confPath, String targetDirJava, String testClassName, String packageName, Map<String, String> bodyEntityName, String bodyEntityPackage, Map<String, String> resourceClassName, String resourceClassPackage, Boolean bodiesAsString) {
         PITestWriter pitestWriter = new PITestWriter(OAISpecPath, confPath, targetDirJava + "/pitest", testClassName, packageName + ".pitest");
         pitestWriter.setBodyEntityName(bodyEntityName);
         pitestWriter.setBodyEntityPackage(bodyEntityPackage);

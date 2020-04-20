@@ -27,9 +27,9 @@ public class PITestWriter implements IWriter {
 	private boolean bodiesAsString = false;
 	private boolean logging = false;				// Log everything (ONLY IF THE TEST FAILS)
 
-	private String resourceClassName;
+	private Map<String, String> resourceClassName;
 	private String resourceClassPackage;
-	private String bodyEntityName;
+	private Map<String, String> bodyEntityName;
 	private String bodyEntityPackage;
 
 	private String specPath;						// Path to OAS specification file
@@ -80,7 +80,8 @@ public class PITestWriter implements IWriter {
 		
 		// Close class
 
-		contentFile += generateResponseValidationMethod(bodyEntityName);
+		for(String entityName : new HashSet<>(bodyEntityName.values()))
+			contentFile += generateResponseValidationMethod(entityName);
 
 		contentFile += "}\n";
 		
@@ -93,7 +94,7 @@ public class PITestWriter implements IWriter {
 		*/
 	}
 
-	private String generateImports(String packageName, String resourceClassPackage, String resourceClassName, String bodyEntityPackage, String bodyEntityName) {
+	private String generateImports(String packageName, String resourceClassPackage, Map<String, String> resourceClassName, String bodyEntityPackage, Map<String, String> bodyEntityName) {
 		String content = "";
 		
 		if (packageName!=null)
@@ -110,6 +111,8 @@ public class PITestWriter implements IWriter {
 				+  "import javax.ws.rs.core.Response;\n"
 				+  "import java.util.Collection;\n"
 				+  "import java.util.Map;\n"
+				+  "import java.util.List;\n"
+				+  "import java.util.stream.Collectors;\n"
 				+  "import org.junit.FixMethodOrder;\n"
 				+  "import static org.junit.Assert.fail;\n"
 				+  "import static org.junit.Assert.assertTrue;\n"
@@ -119,10 +122,13 @@ public class PITestWriter implements IWriter {
 				+  "import io.swagger.models.HttpMethod;\n"
 				+  "import io.swagger.models.Model;\n"
 				+  "import io.swagger.models.properties.RefProperty;\n"
-				+  "import io.swagger.models.properties.ArrayProperty;\n"
-				+  "import " + resourceClassPackage + "." + resourceClassName + ";\n";
-		if(bodyEntityName != null && bodyEntityPackage != null)
-			content += "import " + bodyEntityPackage + "." + bodyEntityName + ";\n";
+				+  "import io.swagger.models.properties.Property;\n"
+				+  "import io.swagger.models.properties.ArrayProperty;\n";
+		for(String className : new HashSet<>(resourceClassName.values()))
+			content += "import " + resourceClassPackage + "." + className + ";\n";
+
+		for(String entityName : new HashSet<>(bodyEntityName.values()))
+			content += "import " + bodyEntityPackage + "." + entityName + ";\n";
 		
 		content +="\n";
 		
@@ -164,24 +170,37 @@ public class PITestWriter implements IWriter {
 				.map(Parameter::getName)
 				.findFirst()
 				.orElse(null);
+
+		String entityName;
+		if(bodyEntityName.containsKey("ALL"))
+			entityName = this.bodyEntityName.get("ALL");
+		else
+			entityName = this.bodyEntityName.get(t.getPath() + "->" + t.getMethod().toString());
+
+		String className;
+		if(resourceClassName.containsKey("ALL"))
+			className = this.resourceClassName.get("ALL");
+		else
+			className = this.resourceClassName.get(t.getPath() + "->" + t.getMethod().toString());
 		
 		// Generate test method header
 		content += generateMethodHeader(t,instance);
 
 		// Generate initialization of the API resource class and the booleans needed
-		content += generateTestInitialization();
+		content += generateTestInitialization(className);
 
 		// Generate the start of the try block
 		content += generateTryBlockStart();
 
 		// Generate all stuff needed before the API request
-		content += generatePreRequest(t);
+		if(bodyParam != null)
+			content += generatePreRequest(t, entityName);
 		
 		// Generate parameters and the API call
 		content += generateParametersAndAPICall(t, conf, bodyParam);
 
 		// Generate the asserts
-		content += generateAsserts(t);
+		content += generateAsserts(t, entityName);
 
 		// Generate all stuff needed after the asserts
 		content += generatePostAsserts(t, bodyParam);
@@ -201,32 +220,32 @@ public class PITestWriter implements IWriter {
 				"\tpublic void " + t.getId() + "() {\n";
 	}
 
-	private String generateTestInitialization() {
-		return "\t\t" + resourceClassName + " resource = " + resourceClassName + ".getInstance();\n\n";
+	private String generateTestInitialization(String className) {
+		return "\t\t" + className + " resource = " + className + ".getInstance();\n\n";
 	}
 
 	private String generateTryBlockStart() {
 		return "\t\ttry {\n";
 	}
 
-	private String generatePreRequest(TestCase t) {
+	private String generatePreRequest(TestCase t, String entityName) {
 		String content = "";
 
 		if (t.getBodyParameter() != null) {
-			content += generateJSONtoObjectConversion(t);
+			content += generateJSONtoObjectConversion(t, entityName);
 		} else if(t.getMethod().equals(HttpMethod.POST) || t.getMethod().equals(HttpMethod.PUT) || t.getMethod().equals(HttpMethod.PATCH))
-			content += "\t\t\t" + bodyEntityName + " jsonBody = null;\n\n";
+			content += "\t\t\t" + (bodiesAsString? "String" : entityName) + " jsonBody = null;\n\n";
 		return content;
 	}
 
-	private String generateJSONtoObjectConversion(TestCase t) {
+	private String generateJSONtoObjectConversion(TestCase t, String entityName) {
 		String content = "";
 		String bodyParameter = escapeJava(t.getBodyParameter());
 
 		if(!bodiesAsString) {
-			content += "\t\t\t" + bodyEntityName + " jsonBody = mapper.readValue(\""
+			content += "\t\t\t" + entityName + " jsonBody = mapper.readValue(\""
 					+  bodyParameter
-					+  "\", " +  bodyEntityName + ".class);\n\n";
+					+  "\", " +  entityName + ".class);\n\n";
 		} else {
 			content += "\t\t\tString jsonBody = \"" + bodyParameter + "\";\n\n";
 		}
@@ -254,8 +273,6 @@ public class PITestWriter implements IWriter {
 
 		//With the Operation object, the Writer can get the names of all the possible parameters of the operation
 		List<String> allParamNames = op.getTestParameters().stream().map(TestParameter::getName).collect(Collectors.toCollection(ArrayList::new));
-		//Removes the name of the body parameter of the list (if exists)
-		if(bodyParam != null) allParamNames.remove(bodyParam);
 
 		//Instantiates every possible parameter of the operation. If there's no value, it is instantiated as null.
 		for(TestParameter tp : op.getTestParameters()) {
@@ -268,17 +285,16 @@ public class PITestWriter implements IWriter {
 		//Instantiates the response of the API.
 		content += "\n\t\t\tResponse response = resource." + op.getOperationId() + "(";
 
-		//Adds the body parameter to the method (if exists)
-		if(bodyParam != null)
-			content += "jsonBody";
-
 		//Adds the parameters to the method
 		for(TestParameter tp : op.getTestParameters()) {
+			if (!(allParamNames.indexOf(tp.getName()) == 0))
+				content += ", ";
 			if(!tp.getName().equals(bodyParam)) {
-				if (!(allParamNames.indexOf(tp.getName()) == 0 && t.getBodyParameter() == null))
-					content += ", ";
 				content += tp.getName();
+			} else {
+				content += "jsonBody";
 			}
+
 		}
 
 		content += ");\n\n";
@@ -286,7 +302,7 @@ public class PITestWriter implements IWriter {
 		return content;
 	}
 
-	private String generateAsserts(TestCase t) {
+	private String generateAsserts(TestCase t, String entityName) {
 		String content = "";
 
 		//Status 500 validation
@@ -298,10 +314,10 @@ public class PITestWriter implements IWriter {
 			content += "\t\t\tassertTrue(\"This test case's input was correct, but received a 400 (Bad Request) status code. Conformance error found.\", response.getStatus() != 400);\n";
 		//Response body validation
 		content += "\t\t\tif(response.getEntity() instanceof Collection) {\n"
-				+  "\t\t\t\tfor(" + bodyEntityName + " e : (Collection<"+ bodyEntityName +">)response.getEntity())\n"
-				+  "\t\t\t\t\tresponseBodyValidation(e, \"" + t.getPath() + "\", HttpMethod." + t.getMethod().name() + ", String.valueOf(response.getStatus()), true);\n"
+				+  "\t\t\t\tfor(" + entityName + " e : (Collection<"+ entityName +">)response.getEntity())\n"
+				+  "\t\t\t\t\tresponseBody" + entityName + "Validation(e, \"" + t.getPath() + "\", HttpMethod." + t.getMethod().name() + ", String.valueOf(response.getStatus()), true);\n"
 				+  "\t\t\t} else \n"
-				+  "\t\t\t\tresponseBodyValidation(((" + bodyEntityName + ")response.getEntity()), \"" + t.getPath() + "\", HttpMethod." + t.getMethod().name() + ", String.valueOf(response.getStatus()), false);\n\n";
+				+  "\t\t\t\tresponseBody" + entityName + "Validation(((" + entityName + ")response.getEntity()), \"" + t.getPath() + "\", HttpMethod." + t.getMethod().name() + ", String.valueOf(response.getStatus()), false);\n\n";
 
 		return content;
 	}
@@ -310,13 +326,14 @@ public class PITestWriter implements IWriter {
 		
 		String content = "\t\t\tSystem.out.println(\"Test passed.\");\n";
 
-		if (t.getBodyParameter() != null) {
+		if (t.getBodyParameter() != null && !bodiesAsString) {
 			content += "\t\t} catch (JsonParseException|JsonMappingException e) {\n"
 					+  "\t\t\tassertTrue(\"This test case's input was correct, but the input body was unable to deserialize. Conformance error found.\", " + t.getFaulty() + ");\n"
 			        +  "\t\t\tSystem.out.println(\"Test passed.\");\n";
 
 			content += "\t\t} catch (IOException e) {\n"
-					+  "\t\t\te.printStackTrace();\n";
+					+  "\t\t\te.printStackTrace();\n"
+					+  "\t\t\tfail(e.getMessage());\n";
 		}
 		if(bodyParam != null) {
 			content += "\t\t} catch (NullPointerException e) {\n"
@@ -346,25 +363,28 @@ public class PITestWriter implements IWriter {
 	}
 
 	private String generateResponseValidationMethod(String bodyEntityName) {
-		return "\tprivate static void responseBodyValidation(" + bodyEntityName + " bodyResponse, String path, HttpMethod method, String responseStatus, Boolean arrayResponse) {\n"
-			+  "\t\tModel swaggerResponse;\n"
-			+  "\t\tif(!arrayResponse) {\n"
-			+  "\t\t\tswaggerResponse = spec.getDefinitions().keySet().stream()\n"
-			+  "\t\t\t\t.filter(x -> x.equals(((RefProperty)spec.getPath(path).getOperationMap().get(method).getResponses().get(responseStatus).getSchema()).getSimpleRef()))\n"
-			+  "\t\t\t\t.map(x -> spec.getDefinitions().get(x))\n"
-			+  "\t\t\t\t.findFirst()\n"
-			+  "\t\t\t\t.orElse(null);\n"
-			+  "\t\t} else {\n"
-			+  "\t\t\tswaggerResponse = spec.getDefinitions().keySet().stream()\n"
-			+  "\t\t\t\t.filter(x -> x.equals(((RefProperty)((ArrayProperty)spec.getPath(path).getOperationMap().get(method).getResponses().get(responseStatus).getSchema()).getItems()).getSimpleRef()))\n"
-			+  "\t\t\t\t.map(x -> spec.getDefinitions().get(x))\n"
-			+  "\t\t\t\t.findFirst()\n"
-			+  "\t\t\t\t.orElse(null);\n"
-			+  "\t\t}\n"
+
+		return "\tprivate static void responseBody" + bodyEntityName + "Validation(" + bodyEntityName + " bodyResponse, String path, HttpMethod method, String responseStatus, Boolean arrayResponse) {\n"
+			+  "\t\tModel swaggerResponseModel = null;\n"
+			+  "\t\tio.swagger.models.Response swaggerResponse = spec.getPath(path).getOperationMap().get(method).getResponses().get(responseStatus);\n"
+			+  "\t\tif(swaggerResponse.getSchema() != null && swaggerResponse.getSchema() instanceof RefProperty)\n"
+			+  "\t\t\tswaggerResponseModel = spec.getDefinitions().get(((RefProperty)swaggerResponse.getSchema()).getSimpleRef());\n"
+			+  "\t\telse if(swaggerResponse.getSchema() != null && swaggerResponse.getSchema() instanceof ArrayProperty)\n"
+			+  "\t\t\tswaggerResponseModel = spec.getDefinitions().get(((RefProperty)((ArrayProperty)swaggerResponse.getSchema()).getItems()).getSimpleRef());\n"
+			+  "\t\tMap<String, Object> mapObject = null;\n"
 			+  "\t\ttry {\n"
-			+  "\t\t\tMap<String, Object> mapObject = mapper.readValue(mapper.writeValueAsString(bodyResponse), new TypeReference<Map<String, Object>>(){});\n"
-			+  "\t\t\tfor(String s : mapObject.keySet())\n"
-			+  "\t\t\t\tassertTrue(\"The response body does not match with the Swagger specification. Unknown parameter: \" + s, swaggerResponse.getProperties().containsKey(s));\n"
+			+  "\t\t\tif(bodyResponse != null) {\n"
+			+  "\t\t\t\tmapObject = mapper.readValue(mapper.writeValueAsString(bodyResponse), new TypeReference<Map<String, Object>>(){});\n"
+			+  "\t\t\t\tModel finalSwaggerResponseModel = swaggerResponseModel;\n"
+			+  "\t\t\t\tList<String> requiredProperties = swaggerResponseModel.getProperties().keySet().stream()\n"
+			+  "\t\t\t\t\t.filter(x -> finalSwaggerResponseModel.getProperties().get(x).getRequired())\n"
+			+  "\t\t\t\t\t.collect(Collectors.toList());\n"
+			+  "\t\t\t\tfor(String s : mapObject.keySet())\n"
+			+  "\t\t\t\t\tassertTrue(\"The response body does not match with the Swagger specification. Unknown parameter: \" + s, swaggerResponseModel.getProperties().containsKey(s));\n"
+			+  "\t\t\t\tfor(String s : requiredProperties)\n"
+			+  "\t\t\t\t\tassertTrue(\"The response body does not match with the Swagger specification. It defines that <\"+ s + \"> is a required property, but the body response does not have this property.\", mapObject.containsKey(s));\n"
+			+  "\t\t\t} else\n"
+			+  "\t\t\t\tassertTrue(\"The response body does not match with the Swagger specification. The specification defines a response schema, and the API response body is null\", mapObject == swaggerResponseModel);\n"
 			+  "\t\t} catch (IOException e) {\n"
 			+  "\t\t\tfail(e.getMessage());\n"
 			+  "\t\t}\n"
@@ -449,11 +469,11 @@ public class PITestWriter implements IWriter {
 		this.APIName = APIName;
 	}
 
-	public void setResourceClassName(String resourceClassName) {
+	public void setResourceClassName(Map<String, String> resourceClassName) {
 		this.resourceClassName = resourceClassName;
 	}
 
-	public void setBodyEntityName(String bodyEntityName) {
+	public void setBodyEntityName(Map<String, String> bodyEntityName) {
 		this.bodyEntityName = bodyEntityName;
 	}
 
