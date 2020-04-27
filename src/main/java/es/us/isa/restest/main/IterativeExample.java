@@ -1,5 +1,6 @@
 package es.us.isa.restest.main;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import es.us.isa.restest.configuration.pojos.TestConfigurationObject;
 import es.us.isa.restest.coverage.CoverageGatherer;
@@ -54,7 +55,7 @@ public class IterativeExample {
 
     private static final Logger logger = LogManager.getLogger(IterativeExample.class.getName());
 
-    private static Boolean enablePitestWriter = false;
+    private static boolean enablePitestWriter = false;
     private static Map<String, String> pitestBodyEntityName;
     private static String pitestBodyEntityPackage;
     private static Map<String, String> pitestResourceClassName;
@@ -67,7 +68,7 @@ public class IterativeExample {
         if(args.length > 0)
             setEvaluationParameters(args[0]);
         else
-            setEvaluationParameters(readProperty("evaluation.properties.dir") +  "/yelp_businessesSearch.properties");
+            setEvaluationParameters(readProperty("evaluation.properties.dir") +  "/youtube_search.properties");
 
         // Create target directory if it does not exists
         createDir(targetDirJava);
@@ -77,10 +78,14 @@ public class IterativeExample {
         // RESTest runner
         AbstractTestCaseGenerator generator = createGenerator();            // Test case generator
         IWriter writer = createWriter();                                    // Test case writer
+        PITestWriter piTestWriter = null;
+        if(enablePitestWriter) {
+            piTestWriter = createPITestWriter();
+        }
         AllureReportManager reportManager = createAllureReportManager();    // Allure test case reporter
         CSVReportManager csvReportManager = createCSVReportManager();       // CSV test case reporter
         CoverageMeter coverageMeter = createCoverageMeter();                // Coverage meter
-        RESTestRunner runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, reportManager, csvReportManager, coverageMeter);
+        RESTestRunner runner = new RESTestRunner(testClassName, targetDirJava, packageName, generator, writer, piTestWriter, reportManager, csvReportManager, coverageMeter);
 
         int iteration = 1;
         while (totalNumTestCases == -1 || runner.getNumTestCases() < totalNumTestCases) {
@@ -131,12 +136,12 @@ public class IterativeExample {
         reloadInputDataEvery = Integer.parseInt(readExperimentProperty(evalPropertiesFilePath, "reloadinputdataevery"));
         inputDataMaxValues = Integer.parseInt(readExperimentProperty(evalPropertiesFilePath, "inputdatamaxvalues"));
         
-       Boolean pitest = Boolean.parseBoolean(readExperimentProperty(APIPropertyFilePath, "api.pitest"));
-        if(pitest) {
+       Boolean pitest = Boolean.parseBoolean(readExperimentProperty(evalPropertiesFilePath, "pitest"));
+       if(pitest) {
             enablePitestWriter = true;
 
             try {
-                String bodyEntityName = readExperimentProperty(APIPropertyFilePath, "api.pitest.bodyentityname");
+                String bodyEntityName = readExperimentProperty(evalPropertiesFilePath, "pitest.bodyentityname");
                 if(bodyEntityName.charAt(0) == '{') {
                     ObjectMapper mapper = new ObjectMapper();
 
@@ -146,7 +151,7 @@ public class IterativeExample {
                     pitestBodyEntityName.put("ALL", bodyEntityName);
                 }
 
-                String resourceClassName = readExperimentProperty(APIPropertyFilePath, "api.pitest.resourceclassname");
+                String resourceClassName = readExperimentProperty(evalPropertiesFilePath, "pitest.resourceclassname");
                 if(resourceClassName.charAt(0) == '{') {
                     ObjectMapper mapper = new ObjectMapper();
                     pitestResourceClassName = mapper.readValue(resourceClassName, new TypeReference<Map<String, String>>(){});
@@ -159,9 +164,9 @@ public class IterativeExample {
                 System.exit(1);
             }
 
-            pitestBodyEntityPackage = readExperimentProperty(APIPropertyFilePath, "api.pitest.bodyentitypackage");
-            pitestResourceClassPackage = readExperimentProperty(APIPropertyFilePath, "api.pitest.resourcepackage");
-            pitestBodiesAsString = Boolean.parseBoolean(readExperimentProperty(APIPropertyFilePath, "api.pitest.bodiesasstring"));
+            pitestBodyEntityPackage = readExperimentProperty(evalPropertiesFilePath, "pitest.bodyentitypackage");
+            pitestResourceClassPackage = readExperimentProperty(evalPropertiesFilePath, "pitest.resourcepackage");
+            pitestBodiesAsString = Boolean.parseBoolean(readExperimentProperty(evalPropertiesFilePath, "pitest.bodiesasstring"));
         }
     }
 
@@ -198,6 +203,16 @@ public class IterativeExample {
         writer.setEnableStats(enableOutputCoverage);
         writer.setAPIName(experimentName);
         return writer;
+    }
+
+    private static PITestWriter createPITestWriter() {
+        PITestWriter pitestWriter = new PITestWriter(OAISpecPath, confPath, targetDirJava + "/pitest", testClassName, packageName + ".pitest");
+        pitestWriter.setBodyEntityName(pitestBodyEntityName);
+        pitestWriter.setBodyEntityPackage(pitestBodyEntityPackage);
+        pitestWriter.setResourceClassName(pitestResourceClassName);
+        pitestWriter.setResourceClassPackage(pitestResourceClassPackage);
+        pitestWriter.setBodiesAsString(pitestBodiesAsString);
+        return pitestWriter;
     }
 
     // Create an Allure report manager

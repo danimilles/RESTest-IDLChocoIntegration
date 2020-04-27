@@ -59,10 +59,6 @@ public class RESTestRunner {
 		this.covMeter = covMeter;
 	}
 
-	public RESTestRunner(String testClassName, String targetDir, String packageName, AbstractTestCaseGenerator generator, IWriter writer, IWriter pitestWriter, AllureReportManager reportManager, CSVReportManager csvReportManager) {
-		this(testClassName, targetDir, packageName, generator, writer, reportManager, csvReportManager);
-		this.pitestWriter = pitestWriter;
-	}
 	public RESTestRunner(String testClassName, String targetDir, String packageName, AbstractTestCaseGenerator generator, IWriter writer, IWriter pitestWriter, AllureReportManager reportManager, CSVReportManager csvReportManager, CoverageMeter covMeter) {
 		this(testClassName, targetDir, packageName, generator, writer, reportManager, csvReportManager, covMeter);
 		this.pitestWriter = pitestWriter;
