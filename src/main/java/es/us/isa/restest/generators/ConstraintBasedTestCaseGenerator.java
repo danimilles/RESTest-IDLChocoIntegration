@@ -12,17 +12,18 @@ import java.util.Map;
 
 import org.javatuples.Pair;
 
-import es.us.isa.idlreasoner.analyzer.Analyzer;
 import es.us.isa.restest.configuration.pojos.Operation;
 import es.us.isa.restest.configuration.pojos.TestConfigurationObject;
 import es.us.isa.restest.configuration.pojos.TestParameter;
 import es.us.isa.restest.inputs.ITestDataGenerator;
 import es.us.isa.restest.inputs.random.RandomBooleanGenerator;
 import es.us.isa.restest.inputs.random.RandomInputValueIterator;
-import es.us.isa.restest.mutation.TestCaseMutation;
 import es.us.isa.restest.specification.OpenAPISpecification;
 import es.us.isa.restest.testcases.TestCase;
 import es.us.isa.restest.util.RESTestException;
+import idlreasonerchoco.analyzer.Analyzer;
+import idlreasonerchoco.analyzer.OASAnalyzer;
+import idlreasonerchoco.configuration.IDLException;
 
 /**
  * This class implements a constraint-based test case generator using IDLReasoner, a CSP-based tool for the automated analysis of inter-parameter dependencies
@@ -54,8 +55,12 @@ public class ConstraintBasedTestCaseGenerator extends AbstractTestCaseGenerator 
 	 * @param testOperation API operation under test
 	 */
 	public void setUpIDLReasoner(Operation testOperation) {
-		if (hasDependencies(testOperation.getOpenApiOperation())) // If the operation contains dependencies, create new IDLReasoner for that operation
-			idlReasoner = new Analyzer("oas", spec.getPath(), testOperation.getTestPath(), testOperation.getMethod());
+		if (hasDependencies(testOperation.getOpenApiOperation()))
+			try {
+				idlReasoner = new OASAnalyzer("oas", spec.getPath(), testOperation.getTestPath(), testOperation.getMethod());
+			} catch (IDLException e) {
+				e.printStackTrace();
+			}
 		else // Otherwise, set it to null so that it's not used
 			idlReasoner = null;
 	}
@@ -67,7 +72,11 @@ public class ConstraintBasedTestCaseGenerator extends AbstractTestCaseGenerator 
 	public void checkIDLReasonerData(Operation testOperation) {
 		if (idlReasoner != null && nTests%reloadInputDataEvery == 0) {
 			Map <String, List<String>> inputData = generateInputData(testOperation.getTestParameters()); // Update input data
-			idlReasoner.updateData(inputData);
+			try {
+				idlReasoner.updateData(inputData);
+			} catch (IDLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -181,7 +190,11 @@ public class ConstraintBasedTestCaseGenerator extends AbstractTestCaseGenerator 
 		
 		if (idlReasoner != null) {		// The operation has inter-parameter dependencies
 			test = createTestCaseTemplate(testOperation);
-			idl2restestTestCase(test, idlReasoner.getRandomValidRequest(), testOperation); // Generate valid test case with IDLReasoner
+			try {
+				idl2restestTestCase(test, idlReasoner.getRandomValidRequest(), testOperation);
+			} catch (IDLException e) {
+				throw new RESTestException(e);
+			} // Generate valid test case with IDLReasoner
 		}
 		else 							// The operation has no inter-parameter dependences: generate a random test case
 			test = generateRandomValidTestCase(testOperation); // Generate valid test case normally (no need to manage deps.)
@@ -201,7 +214,11 @@ public class ConstraintBasedTestCaseGenerator extends AbstractTestCaseGenerator 
 		
 		if (idlReasoner != null) {		// The operation has inter-parameter dependencies
 			test = createTestCaseTemplate(testOperation);
-			idl2restestTestCase(test, idlReasoner.getRandomInvalidRequest(), testOperation); // Generate invalid test case with IDLReasoner
+			try {
+				idl2restestTestCase(test, idlReasoner.getRandomInvalidRequest(), testOperation);
+			} catch (IDLException e) {
+				throw new RESTestException(e);
+			} // Generate invalid test case with IDLReasoner
 			test.setFaulty(true);
 			test.setFaultyReason(INTER_PARAMETER_DEPENDENCY);
 		} else {						// The operation has no inter-parameter dependencies

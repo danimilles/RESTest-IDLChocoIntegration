@@ -1,24 +1,32 @@
 package es.us.isa.restest.testcases;
 
+import static es.us.isa.restest.util.CSVManager.createCSVwithHeader;
+import static es.us.isa.restest.util.CSVManager.writeCSVRow;
+import static es.us.isa.restest.util.FileManager.checkIfExists;
+import static es.us.isa.restest.util.IDLAdapter.restest2idlTestCase;
+import static java.net.URLEncoder.encode;
+
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
 
 import com.atlassian.oai.validator.OpenApiInteractionValidator;
 import com.atlassian.oai.validator.model.SimpleRequest;
 import com.atlassian.oai.validator.report.ValidationReport;
-import es.us.isa.idlreasoner.analyzer.Analyzer;
+
 import es.us.isa.restest.configuration.pojos.TestParameter;
 import es.us.isa.restest.specification.ParameterFeatures;
+import idlreasonerchoco.analyzer.Analyzer;
+import idlreasonerchoco.configuration.IDLException;
 import io.swagger.v3.oas.models.PathItem.HttpMethod;
-import org.apache.logging.log4j.LogManager;
-
-import static es.us.isa.restest.util.CSVManager.*;
-import static es.us.isa.restest.util.FileManager.*;
-import static es.us.isa.restest.util.IDLAdapter.restest2idlTestCase;
-import static java.net.URLEncoder.encode;
 
 /** Domain-independent test case
  * 
@@ -451,7 +459,12 @@ public class TestCase implements Serializable {
 	public static Boolean checkFulfillsDependencies(TestCase tc, Analyzer idlReasoner) {
 		if (idlReasoner == null)
 			return true;
-		return idlReasoner.isValidRequest(restest2idlTestCase(tc), true);
+		try {
+			return idlReasoner.isValidRequest(restest2idlTestCase(tc));
+		} catch (IDLException e) {
+			e.printStackTrace();
+			return false;
+		}
 	}
 
 	public String toString() {
